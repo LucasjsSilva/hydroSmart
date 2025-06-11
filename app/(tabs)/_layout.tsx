@@ -22,10 +22,17 @@ export default function TabLayout() {
     <Tabs
       screenOptions={{
         tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
-        // Disable the static render of the header on web
-        // to prevent a hydration error in React Navigation v6.
+
+        // aqui você insere as cores do header:
+        headerStyle: {
+          backgroundColor: Colors[colorScheme ?? 'light'].tint,    // fundo do cabeçalho
+        },
+        headerTintColor: Colors[colorScheme ?? 'light'].background, // cor do título e ícones
+
+        // mantém seu uso de useClientOnlyValue:
         headerShown: useClientOnlyValue(false, true),
-      }}>
+      }}
+    >
       <Tabs.Screen
         name="index"
         options={{
@@ -48,9 +55,17 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="two"
+        name="two" 
+        
         options={{
           title: 'Tab Two',
+          tabBarIcon: ({ color }) => <TabBarIcon name="code" color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="tres"
+        options={{
+          title: 'Tab Three',
           tabBarIcon: ({ color }) => <TabBarIcon name="code" color={color} />,
         }}
       />
