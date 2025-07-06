@@ -7,11 +7,11 @@ import TrapezoidWaterTank from '@/components/TrapezoidWaterTank';
 type Body = {
   centimetros: number,
   origem: "ESP" | "APP",
-  statusSolenoide: number
+  statusSolenoide: number,
+  comando: number
 }
 
 export default function TabOneScreen() {
-  const [mensagem, setMensagem] = useState('');
   const [volumeAtual, setVolumeAtual] = useState(0);
   const [porcentagemAgua, setPorcentagemAgua] = useState(0);
   const [volumeTotal, setVolumeTotal] = useState(0);
@@ -61,11 +61,14 @@ export default function TabOneScreen() {
     const { centimetros, origem, statusSolenoide } = bodyJson;
     if(origem == "ESP"){
       console.log(body)
+      const volumeTotalAtualizado = calcularVolumeBalde(0);
       const volumeAtual = calcularVolumeBalde(centimetros);
-      const porcentagem = (volumeAtual * 100) / volumeTotal;
+      const porcentagem = (volumeAtual * 100) / volumeTotalAtualizado;
+      console.log({volumeAtual, volumeTotalAtualizado, porcentagem})
       setPorcentagemAgua(porcentagem)
       setVolumeAtual(volumeAtual)
       definirStatus(porcentagem)
+      setVolumeTotal(volumeTotalAtualizado)
       setCodigoStatusSolenoide(statusSolenoide)
     }
   } 
@@ -110,17 +113,40 @@ export default function TabOneScreen() {
   return volume / 1000; // volume em cm³
 }
 
-  const enviarMensagem = () => {
+  const enviarMensagem = (mensagem: string) => {
     console.log("enviar mensagem")
     if (client && client.connected) {
       client.publish('topico-esp23-app-comunicacao-nivel', mensagem);
       Alert.alert('Mensagem enviada', mensagem);
-      setMensagem('');
     } else {
       console.log("Erro")
       Alert.alert('Erro', 'Não conectado ao broker MQTT.');
     }
   };
+
+  const abrirSolenoide = (): void => {
+    const body = {
+        centimetros: 0,
+        origem:  "APP",
+        statusSolenoide: 0,
+        comando: 1
+    } as Body
+    
+    enviarMensagem(JSON.stringify(body))
+
+  }
+
+  const fecharSolenoide = (): void => {
+    const body = {
+        centimetros: 0,
+        origem:  "APP",
+        statusSolenoide: 0,
+        comando: 0
+    } as Body
+    
+    enviarMensagem(JSON.stringify(body))
+
+  }
 
   return (
     <View style={styles.container}>
@@ -139,11 +165,11 @@ export default function TabOneScreen() {
           />
         </View>
         <View style={styles.containerButton}>
-            <TouchableOpacity style={[styles.buttonBase, styles.buttonEnable]} onPress={() => setVolumeAtual(volumeAtual + 5)}>
+            <TouchableOpacity style={[styles.buttonBase, styles.buttonEnable]} onPress={abrirSolenoide}>
               <Text style={styles.textButton}>Abrir Solenoide</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity style={[styles.buttonBase, , styles.buttonDisable]} onPress={() => setVolumeAtual(volumeAtual - 5)}>
+            <TouchableOpacity style={[styles.buttonBase, , styles.buttonDisable]} onPress={fecharSolenoide}>
               <Text style={styles.textButton}>Fechar Solenoide</Text>
             </TouchableOpacity>
         </View>
