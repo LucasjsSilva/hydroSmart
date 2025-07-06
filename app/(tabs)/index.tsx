@@ -7,7 +7,7 @@ import TrapezoidWaterTank from '@/components/TrapezoidWaterTank';
 type Body = {
   centimetros: number,
   origem: "ESP" | "APP",
-  status: number
+  statusSolenoide: number
 }
 
 export default function TabOneScreen() {
@@ -15,7 +15,8 @@ export default function TabOneScreen() {
   const [volumeAtual, setVolumeAtual] = useState(0);
   const [porcentagemAgua, setPorcentagemAgua] = useState(0);
   const [volumeTotal, setVolumeTotal] = useState(0);
-  const [statusVolume, setStatusVolume] = useState<'ERROR' | 'OK'>('ERROR');
+  const [statusVolume, setStatusVolume] = useState<'ALERTA' | 'OK' | 'PERIGO'>('ALERTA');
+  const [codigoStatusSolenoide, setCodigoStatusSolenoide] = useState(0); //0 - fechada, 1 - ligada
   const [client, setClient] = useState<any>(null);
 
   useEffect(() => {
@@ -57,14 +58,46 @@ export default function TabOneScreen() {
 
   const atualizarStatusVolume = (body: string) => {
     const bodyJson: Body = JSON.parse(body);
-    const { centimetros, origem, status } = bodyJson;
-    console.log(body)
-    const volumeAtual = calcularVolumeBalde(centimetros);
-    const porcentagem = (volumeAtual * 100) / volumeTotal;
-    setPorcentagemAgua(porcentagem)
-    setVolumeAtual(volumeAtual)
-    console.log({volumeAtual, volumeTotal, porcentagem})
+    const { centimetros, origem, statusSolenoide } = bodyJson;
+    if(origem == "ESP"){
+      console.log(body)
+      const volumeAtual = calcularVolumeBalde(centimetros);
+      const porcentagem = (volumeAtual * 100) / volumeTotal;
+      setPorcentagemAgua(porcentagem)
+      setVolumeAtual(volumeAtual)
+      definirStatus(porcentagem)
+      setCodigoStatusSolenoide(statusSolenoide)
+    }
   } 
+
+  const definirStatus = (porcentagem: number): void => {
+    if(porcentagem <= 10.0 || porcentagem >= 90.0){
+      setStatusVolume("PERIGO")
+      return;
+    }
+
+    if(porcentagem > 10.0 && porcentagem <= 35.0){
+      setStatusVolume("ALERTA")
+      return;
+    }
+
+    if(porcentagem > 35.0 && porcentagem < 90){
+      setStatusVolume("OK");
+      return;
+    }
+  }
+
+  const definirCor = (): string => {
+    if(statusVolume == 'OK'){
+      return '#19b2e6';
+    }
+
+    if(statusVolume == 'ALERTA'){
+      return '#e7e361'
+    }
+
+    return '#ce5d5d'
+  }
 
   const calcularVolumeBalde = (altura: number): number => {
   const pi = Math.PI;
@@ -94,14 +127,14 @@ export default function TabOneScreen() {
       <View style={styles.containerContent}>
           <View>
               <View style={styles.containerTitle}>
-                <Text style={styles.textTitle}>Status Solenoide: LIGADA</Text>
+                <Text style={styles.textTitle}>Status Solenoide: {!!codigoStatusSolenoide ? 'ABERTA' : 'FECHADA'}</Text>
               </View>
           </View>
         <View style={styles.containerTank}>
-          <Text>{porcentagemAgua}% da capacidade - {Math.round(volumeTotal)} L total - {Math.round(volumeAtual)} L total</Text>
+          <Text>{Math.round(porcentagemAgua)}% da capacidade - {Math.round(volumeTotal)} L total - {Math.round(volumeAtual)} L total</Text>
           <TrapezoidWaterTank 
             percentage={porcentagemAgua}
-            waterColor='#19b2e6'
+            waterColor={definirCor()}
             key={1}
           />
         </View>
