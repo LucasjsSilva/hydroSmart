@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { StyleSheet, TextInput, Button, Alert } from 'react-native';
+import { StyleSheet, TextInput, Button, Alert, TouchableOpacity } from 'react-native';
 import { Text, View } from '@/components/Themed';
 import mqtt from 'mqtt';
+import TrapezoidWaterTank from '@/components/TrapezoidWaterTank';
 
 type Body = {
   centimetros: number,
@@ -11,7 +12,9 @@ type Body = {
 
 export default function TabOneScreen() {
   const [mensagem, setMensagem] = useState('');
-  const [quantidadeAgua, setQuantidadeAgua] = useState(0);
+  const [volumeAtual, setVolumeAtual] = useState(0);
+  const [porcentagemAgua, setPorcentagemAgua] = useState(0);
+  const [volumeTotal, setVolumeTotal] = useState(0);
   const [statusVolume, setStatusVolume] = useState<'ERROR' | 'OK'>('ERROR');
   const [client, setClient] = useState<any>(null);
 
@@ -46,7 +49,7 @@ export default function TabOneScreen() {
     });
 
     setClient(mqttClient);
-
+    setVolumeTotal(calcularVolumeBalde(0))
     return () => {
       mqttClient.end();
     };
@@ -55,28 +58,23 @@ export default function TabOneScreen() {
   const atualizarStatusVolume = (body: string) => {
     const bodyJson: Body = JSON.parse(body);
     const { centimetros, origem, status } = bodyJson;
-    const volume = calcularVolumeBalde(centimetros);
-    const altura = 40;
-    const tamanhoContainer = 250;
-    const tamanhoReal = 50;
-    const valorX: number = Math.round((tamanhoContainer * centimetros) / tamanhoReal);
-    console.log(valorX)
-    setQuantidadeAgua(valorX);
-    if(valorX >= 50 && valorX <= 200){
-      setStatusVolume("OK")
-    }else{
-      setStatusVolume("ERROR")
-    }
+    console.log(body)
+    const volumeAtual = calcularVolumeBalde(centimetros);
+    const porcentagem = (volumeAtual * 100) / volumeTotal;
+    setPorcentagemAgua(porcentagem)
+    setVolumeAtual(volumeAtual)
+    console.log({volumeAtual, volumeTotal, porcentagem})
   } 
 
   const calcularVolumeBalde = (altura: number): number => {
   const pi = Math.PI;
-  const r1 = 15; // raio da base em cm
-  const r2 = 20; // raio da boca em cm
-  const h = altura; // altura em cm
+  const r1 = 24.3 / 2.0; // raio da base em cm
+  const r2 = 29.3 / 2.0; // raio da boca em cm
+  const hFixada = 31.9; // altura em cm
+  const h = hFixada - altura; // altura em cm
 
   const volume = (pi * h / 3) * (r1 ** 2 + r1 * r2 + r2 ** 2);
-  return volume; // volume em cm³
+  return volume / 1000; // volume em cm³
 }
 
   const enviarMensagem = () => {
@@ -93,49 +91,30 @@ export default function TabOneScreen() {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Trabalho Final hydro-smart.</Text>
-      <Text>{quantidadeAgua}%</Text>
-      <View style={styles.containerBoxWater}>
-        <View style={styles.containerSideWall}>
-          <View style={[styles.water, {height: quantidadeAgua, backgroundColor: (statusVolume == 'OK' ? '#0000CD' : '#d22')}]}></View>
+      <View style={styles.containerContent}>
+          <View>
+              <View style={styles.containerTitle}>
+                <Text style={styles.textTitle}>Status Solenoide: LIGADA</Text>
+              </View>
+          </View>
+        <View style={styles.containerTank}>
+          <Text>{porcentagemAgua}% da capacidade - {Math.round(volumeTotal)} L total - {Math.round(volumeAtual)} L total</Text>
+          <TrapezoidWaterTank 
+            percentage={porcentagemAgua}
+            waterColor='#19b2e6'
+            key={1}
+          />
+        </View>
+        <View style={styles.containerButton}>
+            <TouchableOpacity style={[styles.buttonBase, styles.buttonEnable]} onPress={() => setVolumeAtual(volumeAtual + 5)}>
+              <Text style={styles.textButton}>Abrir Solenoide</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity style={[styles.buttonBase, , styles.buttonDisable]} onPress={() => setVolumeAtual(volumeAtual - 5)}>
+              <Text style={styles.textButton}>Fechar Solenoide</Text>
+            </TouchableOpacity>
         </View>
       </View>
-      <TextInput
-        style={styles.input}
-        placeholder="Digite a mensagem para enviar"
-        value={mensagem}
-        onChangeText={setMensagem}
-      />
-
-      <View style={{width: '100%', justifyContent: 'space-around', flexDirection: 'row'}}>
-        <Button title="Encher caixa" onPress={() => {
-          let quantidadeRestante = quantidadeAgua + 25
-          if(quantidadeRestante <= 250){
-            setQuantidadeAgua(quantidadeRestante)
-          }
-
-          if(quantidadeAgua > 50 && quantidadeAgua < 200){
-            setStatusVolume('OK')
-          }else{
-            setStatusVolume('ERROR')
-          }
-        }} />
-        <Button title="Secar caixa" onPress={() => {
-          let quantidadeRestante = quantidadeAgua - 25
-          if(quantidadeRestante >= 0){
-            setQuantidadeAgua(quantidadeRestante)
-          }
-
-           if(quantidadeAgua > 50 && quantidadeAgua < 200){
-            setStatusVolume('OK')
-          }else{
-            setStatusVolume('ERROR')
-          }
-        }} />
-
-      </View>
-      {/* <Button title="Enviar para o ESP32" onPress={enviarMensagem} /> */}
-
     </View>
   );
 }
@@ -145,43 +124,64 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    padding: 16,
+    padding: 10,
+    backgroundColor: '#f6f1f1'
   },
   title: {
     fontSize: 20,
     fontWeight: 'bold',
     marginBottom: 16,
   },
-  input: {
-    borderWidth: 1,
-    borderColor: '#999',
-    borderRadius: 8,
+  containerContent: {
+    backgroundColor: '#ffffff',
+    width: '100%',
+    height: '100%',
+    borderRadius: 20,
     padding: 10,
-    width: '100%',
-    marginBottom: 16,
-  },
-  containerBoxWater: {
-    width: '100%',
-    height: 300,
     justifyContent: 'center',
-    alignItems: 'flex-end',
-    flexDirection: 'row',
-    borderTopLeftRadius: 20
   },
-  containerSideWall: {
-    width: 250,
-    height: 250,
-    borderBottomColor: '#000d00',
-    borderBottomWidth: 4,
-    borderLeftColor: '#000d00',
-    borderLeftWidth: 4,
-    borderRightColor: '#000d00',
-    borderRightWidth: 4,
-    justifyContent: 'flex-end',
-    alignItems: 'flex-end'
-  }, 
-  water: {
-    width: 242,
-    backgroundColor: '#0000CD'
+  containerTank: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center'
+  },
+  containerButton: {
+    width: '100%',
+    alignItems: 'center',
+    justifyContent: 'space-around',
+    flexDirection: 'row',
+    height: 60
+  },
+  buttonBase: {
+    width: '40%',
+    height: 50,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 10
+  },
+  buttonDisable: {
+    backgroundColor: '#ce5d5d'
+  },
+  buttonEnable: {
+    backgroundColor: '#5dcea6'
+  },
+  textButton: {
+    color: '#ffff',
+    fontWeight: '800',
+    fontSize: 15
+  },
+  textTitle: {
+    color: '#f6f1f1',
+    fontWeight: '800',
+    fontSize: 15
+  },
+  containerTitle: {
+    padding: 10,
+    width: '40%',
+    borderRadius: 12,
+    alignContent: 'center',
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#5dcea6'
   }
 });
