@@ -346,7 +346,7 @@ const getStatusText = () => {
         </View>
         <View style={styles.cardContent}>
           <View style={styles.infoRow}>
-            <Text style={styles.infoLabel}>💧 Nível da Água</Text>
+            <Text style={styles.infoLabel}>Nível da Água</Text>
           </View>
           <ProgressBar value={Math.round(porcentagemAgua)} />
           <View style={styles.progressInfo}>
@@ -361,14 +361,11 @@ const getStatusText = () => {
       {/* Mode Selection */}
       <Card>
         <View style={styles.cardHeader}>
-          <Text style={styles.cardTitle}>⚙️ Modo de Operação</Text>
+          <Text style={styles.cardTitle}>Modo de Operação</Text>
         </View>
         <View style={styles.cardContent}>
           <View style={styles.modeContainer}>
             <View style={styles.modeInfo}>
-              <Text style={styles.modeIcon}>
-                {isAutoMode ? '⚡' : '✋'}
-              </Text>
               <View>
                 <Text style={styles.modeTitle}>
                   {isAutoMode ? "Modo Automático" : "Modo Manual"}
@@ -418,7 +415,7 @@ const getStatusText = () => {
             disabled={isOperating || waterLevel >= 100 || isAutoMode}
             style={styles.fillButton}
           >
-            📈 {status === "filling" ? "Enchendo..." : "Encher Caixa"}
+          {status === "filling" ? "Enchendo..." : "Ligar"}
           </Button>
 
           <Button
@@ -427,7 +424,7 @@ const getStatusText = () => {
             variant="secondary"
             style={styles.emptyButton}
           >
-            📉 {status === "emptying" ? "Esvaziando..." : "Esvaziar Caixa"}
+          {status === "emptying" ? "Esvaziando..." : "Desligar"}
           </Button>
 
           {isAutoMode && (
@@ -499,12 +496,6 @@ const getStatusText = () => {
           onPress={() => setActiveTab('dashboard')}
         >
           Dashboard
-        </TabButton>
-        <TabButton
-          active={activeTab === 'history'}
-          onPress={() => setActiveTab('history')}
-        >
-          Histórico
         </TabButton>
       </View>
 
